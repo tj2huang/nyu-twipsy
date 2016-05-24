@@ -80,7 +80,7 @@ class Queries:
 class DataAccess:
     @classmethod
     def sample_control(cls, lower=0, upper=.01):
-        return cls.to_df(db2.find(find=Queries.sample(lower, upper), projection=Projections.all))
+        return cls.to_df(db2.find(Queries.sample(lower, upper), projection=Projections.all))
 
     @classmethod
     def to_df(cls, cursor):
@@ -97,6 +97,10 @@ class DataAccess:
     @classmethod
     def get_not_labeled(cls):
         return cls.to_df(db.find(Queries.no_label, Projections.mechanical_turk))
+
+    @classmethod
+    def get_everything(cls):
+        return cls.to_df(db.find({}))
 
     @classmethod
     def write_labels(cls, series):

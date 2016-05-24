@@ -1,7 +1,7 @@
 from sklearn.base import BaseEstimator, TransformerMixin
 from scipy import sparse
 
-from __private import p2, p3, tokenizer, lda100, d1
+from __private import p2, p3, tokenizer,  d1, lda100
 
 __author__ = 'JasonLiu'
 
@@ -28,7 +28,8 @@ class Gensim(BaseEstimator, TransformerMixin):
         tokens = [
             d1.doc2bow(doc) for doc in p3[p2[X.str.lower().apply(tokenizer.tokenize)]]
             ]
-        return self.convert2sparse(tokens)
+        # return self.convert2sparse(tokens)
+        return X
 
     def fit_transform(self, X, y=None, **fit_params):
         return self.transform(X)

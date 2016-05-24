@@ -11,7 +11,6 @@ from pipelines.text import Gensim
 
 __author__ = 'JasonLiu'
 
-
 class AlcoholPipeline:
     def __init__(self, time_features=None, global_features=None, lsi=False, lsi_n=1000):
         """
