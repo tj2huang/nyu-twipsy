@@ -48,7 +48,7 @@ def split_by_week(folder):
 def split_to_csv(folder, size):
     out_file = None
     writer = None
-    with open('C:/Users/Tom Work/Documents/control-dump.json', 'r') as in_file:
+    with open('E:/Data/drinking-dump.json', 'r') as in_file:
         for i, line in enumerate(in_file):
             if not os.path.exists(folder):
                 os.makedirs(folder)
@@ -59,16 +59,17 @@ def split_to_csv(folder, size):
                 block_num = str(int(i/size))
                 print(block_num)
                 out_file = open(folder + '/tweets_' + block_num + '.csv', 'w', encoding='utf8')
-                writer = csv.DictWriter(out_file, fieldnames=['text', 'id', 'created_at'])
+                writer = csv.DictWriter(out_file, fieldnames=['text', 'id', '_id', 'created_at'])
                 writer.writeheader()
             try:
                 text = j['text']
                 id = j['id']
+                _id = j['_id']['$oid']
                 created_at = j['created_at']
-                writer.writerow({'text': text, 'id': id, 'created_at': created_at})
+                writer.writerow({'text': text, 'id': id, '_id': _id, 'created_at': created_at})
             except Exception as e:
                 print(e)
         out_file.close()
 
 if __name__ == '__main__':
-    split_to_csv('tweets_split', 1000000)
+    split_to_csv('E:/data/tweets_split', 1000000)
