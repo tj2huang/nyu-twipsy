@@ -29,7 +29,9 @@ def split_by_week(folder):
                 block_num += 1
                 print(block_num)
                 out_file = open(folder + '/tweets_' + str(block_num) + '.csv', 'w', encoding='utf8')
-                writer = csv.DictWriter(out_file, fieldnames=['text', 'id', 'created_at'])
+                # fields = ['text', 'id', 'created_at']
+                fields = ['location']
+                writer = csv.DictWriter(out_file, fieldnames=fields)
                 writer.writeheader()
             try:
                 text = j['text']
@@ -59,17 +61,24 @@ def split_to_csv(folder, size):
                 block_num = str(int(i/size))
                 print(block_num)
                 out_file = open(folder + '/tweets_' + block_num + '.csv', 'w', encoding='utf8')
-                writer = csv.DictWriter(out_file, fieldnames=['text', 'id', '_id', 'created_at'])
+                # fields = ['text', 'id', 'created_at']
+                fields = ['lat', 'lon']
+                writer = csv.DictWriter(out_file, fieldnames=fields)
                 writer.writeheader()
             try:
-                text = j['text']
-                id = j['id']
-                _id = j['_id']['$oid']
-                created_at = j['created_at']
-                writer.writerow({'text': text, 'id': id, '_id': _id, 'created_at': created_at})
+                lat = j['place']['bounding_box']['coordinates'][0][0][0]
+                lon = j['place']['bounding_box']['coordinates'][0][0][1]
+                writer.writerow({'lat': lat, 'lon': lon})
+
+                # text = j['text']
+                # id = j['id']
+                # created_at = j['created_at']
+
+                # _id = j['_id']['$oid']
+                # writer.writerow({'text': text, 'id': id, 'created_at': created_at})
             except Exception as e:
                 print(e)
         out_file.close()
 
 if __name__ == '__main__':
-    split_to_csv('E:/data/tweets_split', 1000000)
+    split_to_csv('tweets_location', 1000000)
