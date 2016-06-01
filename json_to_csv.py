@@ -47,10 +47,10 @@ def split_by_week(folder):
         out_file.close()
 
 
-def split_to_csv(folder, size):
+def split_to_csv(input, folder, size):
     out_file = None
     writer = None
-    with open('E:/Data/drinking-dump.json', 'r') as in_file:
+    with open(input, 'r') as in_file:
         for i, line in enumerate(in_file):
             if not os.path.exists(folder):
                 os.makedirs(folder)
@@ -66,8 +66,8 @@ def split_to_csv(folder, size):
                 writer = csv.DictWriter(out_file, fieldnames=fields)
                 writer.writeheader()
             try:
-                lat = j['place']['bounding_box']['coordinates'][0][0][0]
-                lon = j['place']['bounding_box']['coordinates'][0][0][1]
+                lon = j['place']['bounding_box']['coordinates'][0][0][0]
+                lat = j['place']['bounding_box']['coordinates'][0][0][1]
                 writer.writerow({'lat': lat, 'lon': lon})
 
                 # text = j['text']
@@ -81,4 +81,4 @@ def split_to_csv(folder, size):
         out_file.close()
 
 if __name__ == '__main__':
-    split_to_csv('tweets_location', 1000000)
+    split_to_csv('E:/Data/drinking-dump.json', 'tweets_location', 1000000)
