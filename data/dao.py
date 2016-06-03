@@ -103,9 +103,9 @@ class DataAccess:
         return cls.to_df(db.find({}))
 
     @classmethod
-    def write_labels(cls, series):
+    def write_labels(cls, series, label_name='labels'):
         for _id, label in series.to_dict().items():
-            db.find_one_and_update({"_id": _id}, {"$set": {"labels": label}})
+            db.find_one_and_update({"_id": _id}, {"$set": {label_name: label}})
 
     @classmethod
     def count_withlabels(cls):
@@ -154,12 +154,12 @@ class LabelGetter:
         else:
             return label_dict[self.alcohol]
 
-    def _get_labels(self, label_name):
+    def _get_labels(self, label_name, column_name='labels'):
         """
         :param label_name:
         :return: X, y with label_name
         """
-        labels = self.X["labels"]
+        labels = self.X[column_name]
         if label_name == "flat":
             return self.get_flatlabels()
         has = labels.apply(self._contains(label_name))
