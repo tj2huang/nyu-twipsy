@@ -11,7 +11,9 @@ import numpy as np
 
 
 class ComparisonPlot:
-    def __init__(self):
+
+    @staticmethod
+    def formatting():
         plt.rcParams["figure.figsize"] = (14, 5)
         plt.rcParams["figure.dpi"] = 600
         plt.rcParams['axes.linewidth'] = 2
