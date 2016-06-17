@@ -1,31 +1,20 @@
 import mysql.connector
+import pandas as pd
 
 from __private import dc_sql_connect
 
+TWEETS_TABLE = 'uploaded_tweets'
+PREDICTION_TABLE = 'predictions'
+LABEL_TABLE = 'labels'
+
 
 class DataAccess:
-    @staticmethod
-    def _execute(query_str):
-        con = mysql.connector.connect(**dc_sql_connect)
-        cur = con.cursor()
-        try:
-            cur.execute('SET NAMES utf8mb4')
-            cur.execute(query_str)
-        except mysql.connector.Error as e:
-            print(e)
-        finally:
-            con.close()
+    def __init__(self):
+        self.con = mysql.connector.connect(**dc_sql_connect)
+        self.cur = self.con.cursor()
+        self.cur.execute('SET NAMES utf8mb4')
 
-    @staticmethod
-    def create_table(table_name):
-        DataAccess._execute(
-            '''CREATE TABLE {} (
-            date DATETIME, tweet_id VARCHAR(20), text VARCHAR(1000), lat VARCHAR(20), lon VARCHAR(20),
-            label_id INT, predict_id INT);
-            '''.format(table_name))
-
-    @staticmethod
-    def insert_from_df(df):
+    def insert_from_df(self, df):
         """
         Inserts all the rows of the dataframe into database without labels or prediction
         :param df: pd.DataFrame
@@ -34,5 +23,78 @@ class DataAccess:
         query_vars = dict()
         for index, row in df.iterrows():
             for key in _columns:
-                query_vars[key] = row[key] if key in df else 'NULL'
-        DataAccess._execute('''INSERT INTO uploaded_tweets (text, tweet_id, date, lat, lon) VALUES ("{}","{}","{}","{}","{}")'''.format(*[query_vars[key] for key in _columns]))
+                query_vars[key] = str(row[key]) if key in df else 'NULL'
+            try:
+                self.cur.execute('''INSERT INTO {} (text, tweet_id, date, lat, lon)
+                 VALUES (%s,%s,%s,%s,%s)'''.format(TWEETS_TABLE), params=tuple([query_vars[key] for key in _columns]))
+                self.con.commit()
+
+            except mysql.connector.Error as e:
+                print(e)
+                self.con.rollback()
+
+    def raw_as_df(self, start_date, end_date):
+        """
+
+        :param start_date: pd.datetime
+        :param end_date: pd.datetime
+        :param sample:
+        :return:
+        """
+        self.cur.execute('''SELECT {0}.tweet_id, text, date, lat, lon, {1}.Alcohol, {1}.FirstPerson, {1}.Casual,
+        {1}.Looking, {1}.Reflecting FROM {0} INNER JOIN {1} ON {0}.tweet_id = {1}.tweet_id WHERE date BETWEEN %s and %s
+                         '''.format(TWEETS_TABLE, PREDICTION_TABLE), (str(start_date), str(end_date)))
+        results = self.cur.fetchall()
+        df = pd.DataFrame(results, columns=['id', 'text', 'created_at', 'lat', 'lon', 'predict_alc', 'predict_fpa',
+                                            'predict_casual', 'predict_looking', 'predict_reflecting'])
+        # print(df.shape)
+        return df
+
+    def save_prediction(self, df, tweet_id='tweet_id', alc='alcohol', fpa='first person', casual='casual',
+                        looking='looking', reflecting='reflecting', description=''):
+        """
+        Adds predicted probabilities to the prediction table
+        :param df: with columns ['tweet_id', 'alcohol','firstperson', 'casual', 'looking', 'reflecting'] containing
+        their probability between 0 and 1 inclusive
+        :param tweet_id: col name
+        :param alc: col name
+        :param fpa: col name
+        :param casual: col name
+        :param looking: col name
+        :param reflecting: col name
+        :param description: string description of where this prediction is from
+        (e.g. logreg or whatever, maybe not needed)
+        """
+        _columns = [alc, fpa, casual, looking, reflecting]
+        for index, row in df.iterrows():
+            try:
+                self.cur.execute('''INSERT INTO {} (tweet_id, Alcohol, FirstPerson,
+                 Casual, Looking, Reflecting, description) VALUES (%s,%s,%s,%s,%s,%s,%s)'''.format(PREDICTION_TABLE),
+                                 (row[tweet_id],) + tuple([row[key] for key in _columns]) + (description,))
+                self.con.commit()
+
+            except mysql.connector.Error as e:
+                print(e)
+                self.con.rollback()
+
+
+    # TODO: make this work directly with turk results
+    def save_labels(self, df, tweet_id_col='tweet_id', label_col='labels'):
+        """
+
+        :param df:
+        :param tweet_id_col:
+        :param label_col: dict of labels
+        :return:
+        """
+
+        for index, row in df.iterrows():
+            try:
+                self.cur.execute('''INSERT INTO {} (tweet_id, label) VALUES (%s,%s)'''.format(LABEL_TABLE),
+                                 (row[tweet_id_col], row[label_col]))
+                self.con.commit()
+
+            except mysql.connector.Error as e:
+                print(e)
+                self.con.rollback()
+
