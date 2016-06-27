@@ -47,7 +47,7 @@ class ComparisonPlot:
         temp = pd.DataFrame()
         for df in dfs:
             _temp = df.groupby([df.index.dayofweek, df.index.hour]).agg(
-                {"mean": "mean", "err": centered_95int}
+                {"mean": "mean", "err": ComparisonPlot.centered_95int}
             )
             temp = pd.concat([temp, _temp], axis=1)
 
@@ -72,15 +72,15 @@ class ComparisonPlot:
         #     plt.savefig(plot_output_dir + "reflecting_comparison.png")
 
     @staticmethod
-    def plot_fps_week(df, folder):
+    def plot_fps_week(df, folder, window=3):
         temp = df.groupby([df.index.dayofweek, df.index.hour]).agg(
             {
                 _: {"mean": "mean", "err": ComparisonPlot.centered_95int} for _ in ['casual', 'looking', 'reflecting']
                 }
         )
-        means = pd.rolling_mean(temp[[1, 3, 5]], 3)
+        means = pd.rolling_mean(temp[[1, 3, 5]], window)
 
-        stds = pd.rolling_mean(temp[[0, 2, 4]], 3)
+        stds = pd.rolling_mean(temp[[0, 2, 4]], window)
 
         means.columns = [col[0] for col in means.columns.values]
         stds.columns = [col[0] for col in stds.columns.values]

@@ -33,7 +33,27 @@ class DataAccess:
                 print(e)
                 self.con.rollback()
 
-    def raw_as_df(self, start_date, end_date):
+    def insert_fast(self, df):
+        _columns = ['text', 'id', 'created_at', 'lat', 'lon']
+        query_vars = dict()
+        data = list()
+        for index, row in df.iterrows():
+            for key in _columns:
+                query_vars[key] = str(row[key]) if key in df else ''
+            data.append(tuple([query_vars[key] for key in _columns]))
+        while data:
+            try:
+                insert_data = data[:500]
+                data = data[500:]
+                self.cur.executemany('''INSERT INTO {} (text, tweet_id, date, lat, lon)
+                     VALUES (%s,%s,%s,%s,%s)'''.format(TWEETS_TABLE), insert_data)
+                self.con.commit()
+
+            except mysql.connector.Error as e:
+                print(e)
+                self.con.rollback()
+
+    def read_as_df(self, start_date, end_date):
         """
 
         :param start_date: pd.datetime
@@ -41,12 +61,13 @@ class DataAccess:
         :param sample:
         :return:
         """
-        self.cur.execute('''SELECT {0}.tweet_id, text, date, lat, lon, {1}.Alcohol, {1}.FirstPerson, {1}.Casual,
-        {1}.Looking, {1}.Reflecting FROM {0} INNER JOIN {1} ON {0}.tweet_id = {1}.tweet_id WHERE date BETWEEN %s and %s
+        self.cur.execute('''SELECT {0}.tweet_id, {0}.text, {0}.date, {0}.lat, {0}.lon, {0}.utc_offset,
+        {1}.Alcohol, {1}.FirstPerson, {1}.Casual, {1}.Looking, {1}.Reflecting
+        FROM {0} INNER JOIN {1} ON {0}.tweet_id = {1}.tweet_id WHERE date BETWEEN %s and %s
                          '''.format(TWEETS_TABLE, PREDICTION_TABLE), (str(start_date), str(end_date)))
         results = self.cur.fetchall()
-        df = pd.DataFrame(results, columns=['id', 'text', 'created_at', 'lat', 'lon', 'predict_alc', 'predict_fpa',
-                                            'predict_casual', 'predict_looking', 'predict_reflecting'])
+        df = pd.DataFrame(results, columns=['id', 'text', 'created_at', 'lat', 'lon', 'utc_offset', 'predict_alc',
+                                            'predict_fpa', 'predict_casual', 'predict_looking', 'predict_reflecting'])
         # print(df.shape)
         return df
 
@@ -66,17 +87,21 @@ class DataAccess:
         (e.g. logreg or whatever, maybe not needed)
         """
         _columns = [alc, fpa, casual, looking, reflecting]
+        data = list()
         for index, row in df.iterrows():
+            data.append((row[tweet_id],) + tuple([row[key] for key in _columns]) + (description,))
+        while data:
+            insert_data = data[:1000]
+            data = data[1000:]
             try:
-                self.cur.execute('''INSERT INTO {} (tweet_id, Alcohol, FirstPerson,
+                self.cur.executemany('''INSERT INTO {} (tweet_id, Alcohol, FirstPerson,
                  Casual, Looking, Reflecting, description) VALUES (%s,%s,%s,%s,%s,%s,%s)'''.format(PREDICTION_TABLE),
-                                 (row[tweet_id],) + tuple([row[key] for key in _columns]) + (description,))
+                                 insert_data)
                 self.con.commit()
 
             except mysql.connector.Error as e:
                 print(e)
                 self.con.rollback()
-
 
     # TODO: make this work directly with turk results
     def save_labels(self, df, tweet_id_col='tweet_id', label_col='labels'):
@@ -98,3 +123,23 @@ class DataAccess:
                 print(e)
                 self.con.rollback()
 
+    def update_from_df(self, df):
+        _columns = ['lat', 'lon', 'utc_offset', 'id']
+        query_vars = dict()
+        data = list()
+        for index, row in df.iterrows():
+            for key in _columns:
+                query_vars[key] = str(row[key]) if key in df else ''
+            data.append(tuple([query_vars[key] for key in _columns]))
+        while data:
+            try:
+                print('new batch')
+                insert_data = data[:1000]
+                data = data[1000:]
+                self.cur.executemany('''UPDATE {} lat=%s, lon=%s, utc_offset=%s
+                         WHERE tweet_id=%s'''.format(TWEETS_TABLE), insert_data)
+                self.con.commit()
+
+            except mysql.connector.Error as e:
+                print(e)
+                self.con.rollback()
