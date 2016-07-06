@@ -4,10 +4,10 @@ from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import Normalizer
 
-from pipelines.helpers import ItemGetter, ExplodingRecordJoiner
-from pipelines.user import UserAgeMonths, UserEgoVectorizer
-from pipelines.time import Timestamp2DatetimeIndex, DatetimeIndexAttr
-from pipelines.text import Gensim
+# from pipelines.helpers import ItemGetter, ExplodingRecordJoiner
+# from pipelines.user import UserAgeMonths, UserEgoVectorizer
+# from pipelines.time import Timestamp2DatetimeIndex, DatetimeIndexAttr
+# from pipelines.text import Gensim
 
 __author__ = 'JasonLiu'
 
